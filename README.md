@@ -1,0 +1,41 @@
+
+# Lyapunov + UCB for Semantic-Aware NTN Voice Communication
+
+This repository contains the codebase for our ongoing research project targeting **IEEE TWC submission**.  
+The project focuses on **cross-layer optimization of voice communication over 6G-NTN (direct GEO satellite links)**, with strong coupling between **application-layer voice coding (q_t)** and **physical-layer resources** (transmit power p_t, bandwidth allocation b_t, MCS m_t).
+
+## Research Scope
+- **Scenario**: Voice-over-NTN with semantic-aware QoE (streaming ASR + lightweight semantic weighting).
+- **Objective**: Long-term minimization of **Semantic-Weighted WER (SWWER)** under constraints (energy, delay, distortion).
+- **Methodology**:  
+  - Lyapunov drift-plus-penalty for handling long-term constraints.  
+  - **AI-assisted UCB (Sem-UCB++)** for inner-slot decisions (q, p, b, m).  
+  - Lightweight LLM module (LLM-Lite) for semantic importance extraction.  
+
+## Structure
+```
+
+6G/
+├── semntn/              # Main project code
+│   ├── configs/         # YAML configs for experiments
+│   ├── src/             # Core source code
+│   ├── data/            # Shared channel traces
+│   ├── outputs/         # (ignored) experiment outputs
+│   └── requirements.txt # Python dependencies
+└── .gitignore
+
+````
+
+## Key Experiments
+1. **V-scan**: SWWER vs 1/V, Q/J vs V.  
+2. **Semantic weighting**: WER-CDF by semantic bucket.  
+3. **UCB regret curves** (extension, to be run jointly).  
+
+## Current Deliverables
+- **Student A (Zhu Yizhen)**: Semantic weighting module (LLM-Lite) + Lyapunov outer loop + mock inner API.  
+- **Student B (Guo Fangyu)**: UCB-based inner API (inner_api_ucb.py), integrated with Lyapunov loop.  
+
+## Next Steps
+- Refine PER/SINR mapping with more realistic channel models.  
+- Integrate true speech codec traces for stronger evaluation.  
+- Prepare reproducibility package (configs + scripts + logs).  

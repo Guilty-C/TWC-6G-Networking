@@ -1,0 +1,21 @@
+seed: 2025
+T: 20000
+slot_sec: 0.02
+K_head_pkts: 5
+actions:
+  q_bps: [300, 600, 1200, 2400]
+  p_grid_w: [0.2, 0.4, 0.8, 1.2, 1.6]
+  b_subbands: [1, 2, 3]
+mcs_fixed: "QPSK_1_2"
+phy:
+  rolloff: 0.2
+  pilot_overhead: 0.1
+queues_budget:
+  E_per_slot: 0.5
+  Q_target: 500
+sem_weight:
+  w_min: 1.0
+  w_max: 3.0
+  bucket_edges: [1.0, 1.5, 2.0, 2.5, 3.1]
+logging:
+  dump_csv_every: 1000

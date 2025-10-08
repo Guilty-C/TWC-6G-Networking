@@ -1,0 +1,13 @@
+# venv & IDE
+.venv*/
+.codebuddy/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 运行产物
+logs/
+outputs/
