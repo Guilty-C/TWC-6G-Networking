@@ -1,0 +1,43 @@
+data:
+  csv_path: data/pesq_measurements.csv
+  target: pesq
+  features:
+    - name: snr_db
+      monotonic: increasing
+      lower: 0.0
+      upper: 40.0
+    - name: packet_loss
+      monotonic: decreasing
+      lower: 0.0
+      upper: 8.5
+    - name: delay_ms
+      monotonic: decreasing
+      lower: 0.0
+      upper: 200.0
+    - name: mos_baseline
+      monotonic: increasing
+      lower: 1.0
+      upper: 4.5
+    - name: semantic_factor
+      monotonic: increasing
+      lower: 0.2
+      upper: 1.0
+model:
+  regularization: 0.01
+  learning_rate: 0.05
+  max_iter: 2000
+  tol: 1.0e-6
+  families:
+    - name: linear_physics
+      type: linear
+    - name: logistic_physics
+      type: logistic
+      logistic_scale: 6.0
+    - name: rational_physics
+      type: rational
+verification:
+  test_size: 0.2
+  random_seed: 2025
+  curve_points: 60
+  bins: 12
+  output_dir: reports/pesq_surrogate
