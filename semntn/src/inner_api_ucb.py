@@ -1,5 +1,7 @@
+import os
 import numpy as np
 from wer_proxy import per_from_snr_db, wer_from_per
+from improved_ucb import LRCCUCB, LRCCUCBConfig
 
 # ---- UCB1 管理器（对 (q,p,b) 做逐臂统计） ----
 class _UCBArms:
@@ -30,6 +32,21 @@ class _UCBArms:
 
 # ---- 单例（一个episode内持久） ----
 _AGENT = None
+_LRCCUCB = None
+_ALGO = os.environ.get("INNER_UCB_ALGO", "ucb")
+_LAST_PICK = None
+_LRCCFG = LRCCUCBConfig()
+
+
+def configure(algo: str = "ucb", config: dict | None = None) -> None:
+    """Configure the inner agent behaviour."""
+
+    global _ALGO, _AGENT, _LRCCUCB, _LRCCFG
+    _ALGO = algo
+    _AGENT = None
+    _LRCCUCB = None
+    if config:
+        _LRCCFG = LRCCUCBConfig(**config)
 
 def _init_agent(action_space):
     global _AGENT
@@ -42,6 +59,13 @@ def _init_agent(action_space):
             for b in b_list:
                 actions.append((float(q), float(p), int(b)))
     _AGENT = _UCBArms(actions)
+
+
+def _get_lrccucb(action_space):
+    global _LRCCUCB
+    if _LRCCUCB is None:
+        _LRCCUCB = LRCCUCB(action_space, config=_LRCCFG)
+    return _LRCCUCB
 
 def _rate_penalty_db(q_bps, q_ref=300.0, c_db=3.5):
     # 速率越高门限越高（与 mock 一致但可更陡， 使策略有取舍）
@@ -68,7 +92,27 @@ def pick_action_and_estimate(ctx, action_space, Q_t, J_t, V, sem_weight,
     选择一组 (q,p,b) 并给出估计:
     返回 dict: {'action':(q,p,b,'ucb'),'S_bits':..,'E_hat':..,'SWWER_hat':..,'per':..,'snr_eff_db':..}
     """
-    global _AGENT
+    global _AGENT, _LAST_PICK
+    ctx = dict(ctx)
+    ctx.setdefault('Q_scale', Q_scale)
+    ctx.setdefault('J_scale', J_scale)
+    algo = ctx.get('algo', _ALGO)
+    if algo == 'lrc_cucb':
+        agent = _get_lrccucb(action_space)
+        return agent.step(ctx, action_space, Q_t, J_t, V, sem_weight)
+
+    if 'S_bits_obs' in ctx and _LAST_PICK is not None:
+        params = _LAST_PICK['params']
+        r_obs = _r01_from_cost_parts(float(ctx.get('S_bits_obs', 0.0)),
+                                     float(ctx.get('E_obs', 0.0)),
+                                     float(ctx.get('swwer_obs', 0.0)),
+                                     params['A_bits'], params['E_bar'],
+                                     a=params['a'], b=params['b'], c=params['c'],
+                                     slot_sec=params['slot_sec'],
+                                     p_min=params['p_min'], p_max=params['p_max'], q_max=params['q_max'])
+        _AGENT.update(_LAST_PICK['idx'], r_obs)
+        return _LAST_PICK['return']
+
     if _AGENT is None:
         _init_agent(action_space)
     
@@ -99,15 +143,30 @@ def pick_action_and_estimate(ctx, action_space, Q_t, J_t, V, sem_weight,
     r01 = _r01_from_cost_parts(S_bits, E_hat, swwer, A_bits, E_bar,
                               a=a, b=b_, c=c, slot_sec=slot_sec,
                               p_min=p_min, p_max=p_max, q_max=q_max)
-    
-    # 回填 UCB
-    _AGENT.update(idx, r01)
-    
-    return {
-        'action': (float(q), float(p), int(b), 'ucb'),
-        'S_bits': S_bits,
-        'E_hat': E_hat,
-        'SWWER_hat': float(swwer),
-        'per': float(per),
-        'snr_eff_db': float(snr_eff_db)
+
+    _LAST_PICK = {
+        'idx': idx,
+        'reward': r01,
+        'params': {
+            'slot_sec': slot_sec,
+            'A_bits': A_bits,
+            'E_bar': E_bar,
+            'a': a,
+            'b': b_,
+            'c': c,
+            'p_min': p_min,
+            'p_max': p_max,
+            'q_max': q_max,
+        },
+        'return': {
+            'action': (float(q), float(p), int(b), 'ucb'),
+            'S_bits': S_bits,
+            'E_hat': E_hat,
+            'SWWER_hat': float(swwer),
+            'per': float(per),
+            'snr_eff_db': float(snr_eff_db)
+        }
     }
+
+    _AGENT.update(idx, r01)
+    return _LAST_PICK['return']
