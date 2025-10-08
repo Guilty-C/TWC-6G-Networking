@@ -23,8 +23,10 @@ if TYPE_CHECKING:  # pragma: no cover - typing helper for static analyzers
     from numpy.typing import NDArray
 
     FloatArray = NDArray[np.float64]
+    ComplexArray = NDArray[np.complex128]
 else:  # keep runtime dependencies minimal while retaining rich type hints
     FloatArray = np.ndarray
+    ComplexArray = np.ndarray
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +125,7 @@ class LogMMSEDenoiser:
         self._snr_post_prev = np.ones_like(noise_bins)
         self._gain_prev = np.ones_like(noise_bins)
 
-    def _estimate(self, spectrum: FloatArray) -> FloatArray:
+    def _estimate(self, spectrum: ComplexArray) -> ComplexArray:
         assert self._noise_psd is not None
         cfg = self.config.logmmse
 
