@@ -1,0 +1,30 @@
+seed: 2025
+trace_csv: data/channel_trace.csv
+slot_sec: 0.02
+K_head_pkts: 5
+T: 480
+E_per_slot: 0.5
+A_bps: 600.0
+Q_scale: 10000.0
+J_scale: 120.0
+V: 60
+change_slot: 240
+recovery_window: 12
+recovery_tol: 0.06
+swwer_threshold: 0.45
+output_dir: outputs/ucb_eval
+algorithms: [ucb, lrc_cucb]
+lrc_cucb:
+  exploration_coef: 1.1
+  safety_beta: 2.2
+  safe_reward_floor: -0.4
+  forget_factor: 0.985
+  delay_max: 3
+  reset_window: 60
+  reset_threshold: 0.18
+  variance_clip: 4.0
+  context_scale_q: 10000.0
+  context_scale_j: 120.0
+  snr_ref_db: 6.0
+V_scan: [20, 40, 80, 160, 320]
+regret_T: 400
