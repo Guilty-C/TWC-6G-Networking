@@ -26,10 +26,19 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 
 ````
 
+## Quick Start
+To launch the end-to-end semantic evaluation workflow, run the following command from the repository root:
+
+```bash
+python semntn/src/run_sem_eval.py --config semntn/configs/sem_eval.yaml
+```
+
+This command produces bucketed WER/SWWER CDF plots, stability curves, and raw metric dumps under `semntn/outputs/.../{dumps,figs}` as specified in the configuration file.
+
 ## Key Experiments
-1. **V-scan**: SWWER vs 1/V, Q/J vs V.  
-2. **Semantic weighting**: WER-CDF by semantic bucket.  
-3. **UCB regret curves** (extension, to be run jointly).  
+1. **V-scan**: SWWER vs 1/V, Q/J vs V.
+2. **Semantic weighting**: WER-CDF by semantic bucket.
+3. **UCB regret curves** (extension, to be run jointly).
 
 ## Current Deliverables
 - **Student A (Zhu Yizhen)**: Semantic weighting module (LLM-Lite) + Lyapunov outer loop + mock inner API.
@@ -38,6 +47,7 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 
 ## Progress Log
 - **2025-10-08**: Completed physics-informed PESQ surrogate modeling workflow, including model family comparison reporting, configuration-driven CLI orchestration, and automatic exclusion of generated binary artefacts from version control.
+- **2025-10-09**: Documented the quick-start command and expected outputs for the semantic evaluation pipeline.
 
 ## Next Steps
 - Refine PER/SINR mapping with more realistic channel models.
