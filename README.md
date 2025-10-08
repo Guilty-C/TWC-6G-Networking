@@ -32,10 +32,14 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 3. **UCB regret curves** (extension, to be run jointly).  
 
 ## Current Deliverables
-- **Student A (Zhu Yizhen)**: Semantic weighting module (LLM-Lite) + Lyapunov outer loop + mock inner API.  
-- **Student B (Guo Fangyu)**: UCB-based inner API (inner_api_ucb.py), integrated with Lyapunov loop.  
+- **Student A (Zhu Yizhen)**: Semantic weighting module (LLM-Lite) + Lyapunov outer loop + mock inner API.
+- **Student B (Guo Fangyu)**: UCB-based inner API (inner_api_ucb.py), integrated with Lyapunov loop.
+- **Physics-Informed PESQ Surrogate**: End-to-end tooling for training, evaluating, and reporting constrained PESQ surrogate models with single-variable verification curves.
+
+## Progress Log
+- **2025-10-08**: Completed physics-informed PESQ surrogate modeling workflow, including model family comparison reporting, configuration-driven CLI orchestration, and automatic exclusion of generated binary artefacts from version control.
 
 ## Next Steps
-- Refine PER/SINR mapping with more realistic channel models.  
-- Integrate true speech codec traces for stronger evaluation.  
-- Prepare reproducibility package (configs + scripts + logs).  
+- Refine PER/SINR mapping with more realistic channel models.
+- Integrate true speech codec traces for stronger evaluation.
+- Prepare reproducibility package (configs + scripts + logs).
