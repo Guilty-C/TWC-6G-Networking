@@ -28,6 +28,14 @@ else:  # keep runtime dependencies minimal while retaining rich type hints
     FloatArray = np.ndarray
     ComplexArray = np.ndarray
 
+from dataclasses import dataclass
+from typing import List, Optional
+
+import numpy as np
+from numpy.typing import NDArray
+from pydantic import BaseModel, Field, validator
+from scipy import signal, special
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,6 +84,11 @@ class DenoiseConfig:
 
 
 def _design_bandpass(cfg: BandpassConfig) -> FloatArray:
+    bandpass: BandpassConfig = BandpassConfig()
+    logmmse: LogMMSEConfig = LogMMSEConfig()
+
+
+def _design_bandpass(cfg: BandpassConfig) -> NDArray[np.float64]:
     nyq = 0.5 * cfg.sample_rate
     low = cfg.low_hz / nyq
     high = cfg.high_hz / nyq
@@ -84,6 +97,7 @@ def _design_bandpass(cfg: BandpassConfig) -> FloatArray:
 
 
 def _apply_notches(x: FloatArray, cfg: BandpassConfig) -> FloatArray:
+def _apply_notches(x: NDArray[np.float64], cfg: BandpassConfig) -> NDArray[np.float64]:
     y = x
     for freq in cfg.notch_freqs:
         b, a = signal.iirnotch(w0=freq / (cfg.sample_rate / 2), Q=cfg.notch_q)
@@ -120,12 +134,20 @@ class LogMMSEDenoiser:
         self._frame_count = 0
 
     def _initialise_noise(self, frames: FloatArray) -> None:
+        self._noise_psd: Optional[NDArray[np.float64]] = None
+        self._snr_post_prev: Optional[NDArray[np.float64]] = None
+        self._gain_prev: Optional[NDArray[np.float64]] = None
+        self._ema_envelope: Optional[float] = None
+        self._frame_count = 0
+
+    def _initialise_noise(self, frames: NDArray[np.float64]) -> None:
         noise_bins = np.mean(np.abs(np.fft.rfft(frames, axis=1)) ** 2, axis=0)
         self._noise_psd = noise_bins
         self._snr_post_prev = np.ones_like(noise_bins)
         self._gain_prev = np.ones_like(noise_bins)
 
     def _estimate(self, spectrum: ComplexArray) -> ComplexArray:
+    def _estimate(self, spectrum: NDArray[np.complex128]) -> NDArray[np.complex128]:
         assert self._noise_psd is not None
         cfg = self.config.logmmse
 
@@ -169,6 +191,7 @@ class LogMMSEDenoiser:
         return enhanced
 
     def process(self, pcm: FloatArray) -> FloatArray:
+    def process(self, pcm: NDArray[np.float64]) -> NDArray[np.float64]:
         """Enhance a narrow-band PCM waveform.
 
         Parameters
