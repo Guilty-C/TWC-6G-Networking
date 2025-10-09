@@ -30,6 +30,16 @@ class _UCBArms:
         self.n[idx] += 1
         self.s[idx] += r01
 
+    def adjust_reward(self, idx, old_r01, new_r01):
+        """Replace a previously recorded reward with a refined observation."""
+        old_r01 = float(np.clip(old_r01, 0.0, 1.0))
+        new_r01 = float(np.clip(new_r01, 0.0, 1.0))
+        if self.n[idx] == 0:
+            # If no pull was registered (shouldn't happen), fall back to update.
+            self.update(idx, new_r01)
+            return
+        self.s[idx] += new_r01 - old_r01
+
 # ---- 单例（一个episode内持久） ----
 _AGENT = None
 _LRCCUCB = None
@@ -110,7 +120,8 @@ def pick_action_and_estimate(ctx, action_space, Q_t, J_t, V, sem_weight,
                                      a=params['a'], b=params['b'], c=params['c'],
                                      slot_sec=params['slot_sec'],
                                      p_min=params['p_min'], p_max=params['p_max'], q_max=params['q_max'])
-        _AGENT.update(_LAST_PICK['idx'], r_obs)
+        _AGENT.adjust_reward(_LAST_PICK['idx'], _LAST_PICK['reward'], r_obs)
+        _LAST_PICK['reward'] = r_obs
         return _LAST_PICK['return']
 
     if _AGENT is None:
