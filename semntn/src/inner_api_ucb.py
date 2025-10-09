@@ -111,7 +111,7 @@ def pick_action_and_estimate(ctx, action_space, Q_t, J_t, V, sem_weight,
         agent = _get_lrccucb(action_space)
         return agent.step(ctx, action_space, Q_t, J_t, V, sem_weight)
 
-    if 'S_bits_obs' in ctx and _LAST_PICK is not None:
+    if 'S_bits_obs' in ctx and _LAST_PICK is not None and _AGENT is not None:
         params = _LAST_PICK['params']
         r_obs = _r01_from_cost_parts(float(ctx.get('S_bits_obs', 0.0)),
                                      float(ctx.get('E_obs', 0.0)),
