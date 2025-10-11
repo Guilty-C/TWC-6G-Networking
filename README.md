@@ -46,3 +46,26 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 - Refine PER/SINR mapping with more realistic channel models.
 - Integrate true speech codec traces for stronger evaluation.
 - Prepare reproducibility package (configs + scripts + logs).
+
+### Regret 验证（与验收口径对齐）
+
+运行一个最小的 K 臂 bandit 验证，生成累计遗憾曲线，并自动判断与理论阶数 \(O(\log T)\) 的匹配程度：
+
+```bash
+python semntn/src/run_regret.py --config configs/regret.yaml
+```
+
+输出目录：`semntn/outputs/regret/exp001/`
+
+- `regret_curve.csv`
+- `Regret_vs_T.png`
+- `Regret_vs_logT.png`
+
+命令行会打印形如：
+```json
+{"slope": 1.97, "C*": 8.42, "pass": true}
+```
+
+- `slope` 基于 \(R(T)\) 对 \(\log T\) 的线性回归斜率（对应对数级增长）。
+- `C*` 为 \(\max_{t\le T} \frac{R(t)}{\sum_k (\ln t)/\Delta_k}\) 的估计值，用作“边界常数”指标。  
+当 `pass=true` 时，表示**累计遗憾增长阶数与理论吻合**，满足“边界跟紧”的验收要求。
