@@ -26,6 +26,19 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 
 ````
 
+
+## UCB Inner Mode Quick Guide
+The repository now provides a dependency-light pipeline for reproducing the V-scan experiment described in “B 同学任务书”.
+
+- **Environment**: Python 3.10 virtual environment (see `.venv`). No external wheels are required.
+- **Command**:
+  ```bash
+  python run_vscan.py --inner_mode ucb --config configs/vscan.yaml
+  ```
+- **Outputs**: figures are stored in `outputs/figs/` (`Fig1_SWWER_vs_invV.png`, `Fig2_QJ_vs_V.png`) and the aggregated metrics CSV is written to `outputs/dumps/vscan_stats.csv`.
+- **Parameters**: numerical scales (`V`, `Q_scale`, `J_scale`) are defined in `configs/vscan.yaml`; adjust only through that file to keep the Lyapunov outer loop consistent.
+- **Logging**: every 2,000 slots the outer loop prints action selection frequencies and mean PER for sanity checking.
+
 ## Quick Start
 To launch the end-to-end semantic evaluation workflow, run the following command from the repository root:
 
