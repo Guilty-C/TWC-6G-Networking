@@ -1,5 +1,5 @@
 seed: 2025
-T: 20000
+T: 2000
 slot_sec: 0.02
 K_head_pkts: 5
 actions:
@@ -19,3 +19,7 @@ sem_weight:
   bucket_edges: [1.0, 1.5, 2.0, 2.5, 3.1]
 logging:
   dump_csv_every: 1000
+lyap:
+  Q_scale: 100000
+  J_scale: 5000
+

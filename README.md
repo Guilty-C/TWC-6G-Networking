@@ -26,32 +26,10 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 
 ````
 
-
-## UCB Inner Mode Quick Guide
-The repository now provides a dependency-light pipeline for reproducing the V-scan experiment described in “B 同学任务书”.
-
-- **Environment**: Python 3.10 virtual environment (see `.venv`). No external wheels are required.
-- **Command**:
-  ```bash
-  python run_vscan.py --inner_mode ucb --config configs/vscan.yaml
-  ```
-- **Outputs**: figures are stored in `outputs/figs/` (`Fig1_SWWER_vs_invV.png`, `Fig2_QJ_vs_V.png`) and the aggregated metrics CSV is written to `outputs/dumps/vscan_stats.csv`.
-- **Parameters**: numerical scales (`V`, `Q_scale`, `J_scale`) are defined in `configs/vscan.yaml`; adjust only through that file to keep the Lyapunov outer loop consistent.
-- **Logging**: every 2,000 slots the outer loop prints action selection frequencies and mean PER for sanity checking.
-
-## Quick Start
-To launch the end-to-end semantic evaluation workflow, run the following command from the repository root:
-
-```bash
-python semntn/src/run_sem_eval.py --config semntn/configs/sem_eval.yaml
-```
-
-This command produces bucketed WER/SWWER CDF plots, stability curves, and raw metric dumps under `semntn/outputs/.../{dumps,figs}` as specified in the configuration file.
-
 ## Key Experiments
-1. **V-scan**: SWWER vs 1/V, Q/J vs V.
-2. **Semantic weighting**: WER-CDF by semantic bucket.
-3. **UCB regret curves** (extension, to be run jointly).
+1. **V-scan**: SWWER vs 1/V, Q/J vs V.  
+2. **Semantic weighting**: WER-CDF by semantic bucket.  
+3. **UCB regret curves** (extension, to be run jointly).  
 
 ## Current Deliverables
 - **Student A (Zhu Yizhen)**: Semantic weighting module (LLM-Lite) + Lyapunov outer loop + mock inner API.
@@ -60,7 +38,9 @@ This command produces bucketed WER/SWWER CDF plots, stability curves, and raw me
 
 ## Progress Log
 - **2025-10-08**: Completed physics-informed PESQ surrogate modeling workflow, including model family comparison reporting, configuration-driven CLI orchestration, and automatic exclusion of generated binary artefacts from version control.
-- **2025-10-09**: Documented the quick-start command and expected outputs for the semantic evaluation pipeline.
+- **2025-10-11**: Improved the ucb algorithm. Fixed the graphs.
+  <img width="1046" height="615" alt="a4fd636d762a38540091dc5326ea364f" src="https://github.com/user-attachments/assets/6da54835-0d65-4305-828d-b06f950a9248" />
+<img width="1041" height="634" alt="429b3e692f335e65c14916a7944b0513" src="https://github.com/user-attachments/assets/c22f2f5b-9d64-47c3-9b6f-c2d8d7c9b3a9" />
 
 ## Next Steps
 - Refine PER/SINR mapping with more realistic channel models.
