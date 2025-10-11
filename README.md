@@ -76,6 +76,7 @@ python semntn/src/run_regret.py --config configs/regret.yaml
 * `regret_curve.csv`
 * `Regret_vs_T.png`
 * `Regret_vs_logT.png`
+* `Regret_over_logT.png`
 
 **CLI 报告**（示例）：
 
