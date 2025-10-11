@@ -4,7 +4,7 @@ import numpy as np
 from .envs import BernoulliBandit, GaussianBandit, gaps_from_means
 from .algorithms import UCB1, EpsilonGreedy, SemUCB
 from .metrics import RegretMeter, order_check
-from .plots import plot_regret_T, plot_regret_logT
+from .plots import plot_regret_T, plot_regret_logT, plot_regret_over_logT
 
 
 def _mk_outdir(d):
@@ -67,6 +67,7 @@ def run(cfg: dict):
 
     plot_regret_T(regrets, os.path.join(out_dir, "Regret_vs_T.png"), dpi=cfg["plot"]["dpi"])
     plot_regret_logT(regrets, os.path.join(out_dir, "Regret_vs_logT.png"), dpi=cfg["plot"]["dpi"])
+    plot_regret_over_logT(regrets, os.path.join(out_dir, "Regret_over_logT.png"), dpi=cfg["plot"]["dpi"])
 
     gaps = gaps_from_means(means)
     report = order_check(regrets, gaps, cfg["accept"])
