@@ -1,0 +1,33 @@
+outdir: outputs/regret
+save_csv: true
+
+env:
+  type: bernoulli
+  K: 5
+  T: 200000
+  means: [0.72, 0.7, 0.68, 0.65, 0.6]
+  sigma: 0.1
+
+seeds: [1, 2, 3, 4, 5]
+baselines: ["ucb", "eps", "rand", "oracle"]
+
+ucb:
+  alpha: 0.5
+
+epsilon: 0.05
+
+plot:
+  logx: false
+  show_ref_sqrt: true
+
+seeds: [1,2,3,4,5]
+
+# 启用多策略；名字需与 runner.py 支持的一致（通常是 ucb / eps / rand）
+policies:
+  ucb: {}          # 用默认参数
+  eps:
+    epsilon: 0.05  # 可调
+  rand: {}         # 随机
+
+# 有些实现还会读取这个列表；加上以防万一
+policy_names: ["ucb", "eps", "rand"]
