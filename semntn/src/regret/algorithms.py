@@ -126,8 +126,8 @@ class UCB1(UCB1Policy):
 
 
 class EpsilonGreedy(EpsilonGreedyPolicy):
-    def __init__(self, K: int, epsilon: float = 0.05):
-        super().__init__(num_actions=int(K), epsilon=float(epsilon), seed=0)
+    def __init__(self, K: int, epsilon: float = 0.05, seed: Optional[int] = None):
+        super().__init__(num_actions=int(K), epsilon=float(epsilon), seed=seed)
 
     def select(self) -> int:
         return self.select_action(self.counts.sum() + 1)
