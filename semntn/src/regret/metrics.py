@@ -1,44 +1,63 @@
-import math
+from __future__ import annotations
+
+from typing import Dict, Iterable, List
+
 import numpy as np
 
 
-class RegretMeter:
-    """Tracks expected cumulative regret using known optimal mean."""
-    def __init__(self, opt_mean: float):
-        self.opt = float(opt_mean)
-        self.R = 0.0
+def precompute_mu_true(env) -> Dict[int, float]:
+    r"""Pre-compute :math:`\mu_{true}` for each action using the env's mapping."""
 
-    def update(self, mu_a: float) -> float:
-        self.R += (self.opt - float(mu_a))
-        return self.R
+    mu = {}
+    for action in env.enumerate_action_space():
+        mu[action] = float(env.expected_reward_unit_interval(action))
+    return mu
 
 
-def order_check(regrets, gaps, accept_cfg):
+def compute_pseudo_regret(actions: Iterable[int], mu_true: Dict[int, float]) -> np.ndarray:
+    r"""Return the cumulative pseudo-regret curve for ``actions``.
+
+    Parameters
+    ----------
+    actions:
+        Sequence of chosen actions ``a_t``.
+    mu_true:
+        Mapping from action id to :math:`\mu_{true}(a)` on the shared ``[0, 1]``
+        scale.
     """
-    regrets: list[float] of R(t)
-    gaps: list[float] of Δ_k = μ* - μ_k (Δ_k>0 for suboptimal arms)
-    accept_cfg:
-      slope_logT_range: [lo, hi]
-      cstar_max: float
-    """
-    y = np.asarray(regrets, dtype=float)
-    T = y.size
-    x = np.log(np.arange(1, T + 1, dtype=float))
 
-    # linear fit: y ~ k * log T + b
-    k = float(np.polyfit(x, y, deg=1)[0])
+    actions_list: List[int] = list(actions)
+    if not actions_list:
+        return np.zeros(0, dtype=float)
 
-    # C* estimate: max_t R(t) / sum_k (ln t / Δ_k)
-    eps = 1e-9
-    denom = np.zeros(T, dtype=float)
-    for g in gaps:
-        if g > 0:
-            denom += np.log(np.arange(1, T + 1, dtype=float) + eps) / max(eps, g)
-    denom = np.maximum(denom, eps)
-    cstar = float(np.max(y / denom))
+    opt = float(max(mu_true.values()))
+    regret = np.zeros(len(actions_list), dtype=float)
+    cumulative = 0.0
+    for idx, action in enumerate(actions_list):
+        mu_a = mu_true[int(action)]
+        cumulative += opt - mu_a
+        regret[idx] = cumulative
+    return regret
 
-    lo, hi = accept_cfg.get("slope_logT_range", [0.5, 5.0])
-    cmax = float(accept_cfg.get("cstar_max", 12.0))
-    ok = (lo <= k <= hi) and (cstar <= cmax)
 
-    return {"slope": k, "C*": cstar, "pass": bool(ok)}
+def correlation_vs_sqrt_t(regret: np.ndarray) -> float:
+    r"""Pearson correlation between ``R(T)`` and ``sqrt(T)``."""
+
+    if regret.size == 0:
+        return float("nan")
+    start = max(0, int(0.1 * regret.size))
+    tail_regret = regret[start:]
+    sqrt_t = np.sqrt(np.arange(start + 1, regret.size + 1, dtype=float))
+    return float(np.corrcoef(tail_regret, sqrt_t)[0, 1])
+
+
+def slope_vs_sqrt_t(regret: np.ndarray) -> float:
+    r"""Slope of the least-squares fit ``R(T) ≈ slope * sqrt(T) + b``."""
+
+    if regret.size == 0:
+        return 0.0
+    start = max(0, int(0.1 * regret.size))
+    tail_regret = regret[start:]
+    sqrt_t = np.sqrt(np.arange(start + 1, regret.size + 1, dtype=float))
+    slope, _ = np.polyfit(sqrt_t, tail_regret, deg=1)
+    return float(slope)
