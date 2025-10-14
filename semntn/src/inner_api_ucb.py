@@ -4,6 +4,10 @@ from wer_proxy import per_from_snr_db, wer_from_per
 # ---- 全局：单 episode 内有效 ----
 _AGENT = None
 
+# 允许外部配置的超参数（保持默认值以确保向后兼容）
+_CFG_ALPHA = 0.1
+_CFG_EPS_RAND = 0.10
+
 # 归一化：EWMA 均值/方差（避免 min-max 压平 V 效果）
 _NORM_INIT = False
 _NORM_MU = 0.0
@@ -20,8 +24,8 @@ class _UCBArms:
         self.n = np.zeros(K, dtype=int)     # 拉动次数
         self.s = np.zeros(K, dtype=float)   # 指数移动平均奖励（已在[0,1]）
         self.t = 0
-        self.alpha = 0.1                    # EMA 学习率
-        self.eps_rand = 0.10                # 10% 随机探索
+        self.alpha = float(max(1e-6, _CFG_ALPHA))
+        self.eps_rand = float(np.clip(_CFG_EPS_RAND, 0.0, 1.0))
 
     def select(self):
         self.t += 1
@@ -70,6 +74,25 @@ def _init_agent(action_space):
             for b in b_list:
                 actions.append((float(q), float(p), int(b)))
     _AGENT = _UCBArms(actions)
+
+
+def set_ucb_config(alpha=None, eps_rand=None):
+    """配置 UCB 内层的探索/学习率。
+
+    参数均为可选；如为 ``None`` 则保持当前值。调用不会立即重置 agent，
+    但下一次 ``reset_agent`` 或新的 episode 初始化时会生效。
+    """
+    global _CFG_ALPHA, _CFG_EPS_RAND
+    if alpha is not None:
+        alpha = float(alpha)
+        if alpha <= 0:
+            raise ValueError("alpha must be positive")
+        _CFG_ALPHA = alpha
+    if eps_rand is not None:
+        eps_rand = float(eps_rand)
+        if not (0.0 <= eps_rand <= 1.0):
+            raise ValueError("eps_rand must be within [0,1]")
+        _CFG_EPS_RAND = eps_rand
 
 def _rate_penalty_db(q_bps, q_ref=300.0, c_db=3.5):
     """速率越高门限越高"""
