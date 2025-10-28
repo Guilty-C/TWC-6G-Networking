@@ -1,0 +1,37 @@
+mode: bandit
+
+# Episode
+T: 1000
+slot_sec: 0.020
+trace: semntn/data/channel_trace.csv
+outdir: outputs
+
+# Exogenous arrivals (bps) and budgets
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.500   # J/slot
+semantic_budget: 0.200            # max sWER per slot
+latency_budget_q_bps: 300.0
+
+# Lyapunov parameter and scales
+V: 100.0
+scales:
+  queue_scale: 2.0e4
+  energy_scale: 5.0e2
+  semantic_scale: 1.0
+
+# Discrete arms: (q_bps, P, B)
+arms:
+  - { q_bps: 1600.0, P: 1.20, B: 2 }
+  - { q_bps: 1200.0, P: 0.90, B: 2 }
+  - { q_bps: 900.0,  P: 0.70, B: 2 }
+  - { q_bps: 700.0,  P: 0.60, B: 3 }
+  - { q_bps: 500.0,  P: 0.45, B: 3 }
+
+# Bandit inner kwargs (no shaping, baseline UCB1)
+bandit:
+  mode: ucb1
+  alpha: 1.0
+  window: 0
+  eps_rand: 0.05
+  lcb_min: 0.20
+  reward_shaping: false

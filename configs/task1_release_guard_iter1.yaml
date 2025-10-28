@@ -1,0 +1,12 @@
+mode: continuous
+T: 2000
+slot_sec: 0.02
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.5
+semantic_budget: 0.37
+latency_budget_q_bps: 300.0
+V: 6
+scales:
+  queue_scale: 15000.0
+  energy_scale: 600.0
+  semantic_scale: 9.0

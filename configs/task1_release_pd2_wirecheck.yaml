@@ -1,0 +1,41 @@
+mode: continuous
+outdir: outputs
+trace: semntn/data/channel_trace.csv
+
+# episode
+T: 300
+slot_sec: 0.02
+
+# traffic & budgets
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.5
+semantic_budget: 0.38
+latency_budget_q_bps: 300.0
+
+# DPP tuning（在线原始–对偶 + 双守护）
+V: 6
+scales:
+  queue_scale: 12000
+  energy_scale: 600
+  semantic_scale: 4.0
+lam_init_multiplier: 1.0
+
+enable_primal_dual: true
+guard:
+  semantic: true
+  queue: true
+
+pd:
+  eta: 0.01
+  delta_queue: 0.12
+
+# continuous search
+q_bps: 1200.0
+search:
+  B_min: 0.125
+  B_grid: 16
+  P_search: bisection
+B_grid: [0.125, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0]
+P_min: 0.2
+P_max: 25.6
+P_grid: 31

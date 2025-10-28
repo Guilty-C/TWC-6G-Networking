@@ -1,0 +1,28 @@
+# Release candidate with sWER-guard enabled (uses semantics guard in controller)
+mode: continuous
+outdir: outputs
+trace: semntn/data/channel_trace.csv
+
+# episode
+T: 2000
+slot_sec: 0.02
+
+# traffic & budgets
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.5
+semantic_budget: 0.37
+latency_budget_q_bps: 300.0
+
+# DPP tuning (guard reduces need for extreme semantic_scale)
+V: 8
+scales:
+  queue_scale: 15000
+  energy_scale: 600
+  semantic_scale: 6.0
+
+# continuous search
+q_bps: 1200.0
+B_grid: [1, 2, 3]
+P_min: 0.2
+P_max: 1.6
+P_grid: 31

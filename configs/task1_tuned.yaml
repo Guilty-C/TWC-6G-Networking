@@ -1,0 +1,28 @@
+# Tuned Task1 config (small, controlled adjustments)
+mode: continuous
+outdir: outputs
+trace: semntn/data/channel_trace.csv
+
+# episode
+T: 2000
+slot_sec: 0.02
+
+# traffic & budgets (adapter will map to unified keys)
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.5    # Joules/slot
+semantic_budget: 0.35            # relaxed semantic target
+latency_budget_q_bps: 300.0      # latency proxy threshold (bps)
+
+# DPP tuning
+V: 20             # was 120; lower to respect constraints
+scales:
+  queue_scale: 5000    # was 20000
+  energy_scale: 800    # was 500; nudge energy constraint up
+  semantic_scale: 2.0  # was 1.0
+
+# continuous search
+q_bps: 1200.0
+B_grid: [1, 2, 3]
+P_min: 0.2
+P_max: 1.6
+P_grid: 31
