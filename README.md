@@ -9,8 +9,8 @@ The project focuses on **cross-layer optimization of voice communication over 6G
 - [Getting Started](#getting-started)
 - [V-scan Demo (UCB inner)](#v-scan-demo-ucb-inner)
 - [Semantic Evaluation Pipeline](#semantic-evaluation-pipeline)
-- [Regret 验证（与验收口径对齐）](#regret-验证与验收口径对齐)
-- [配置文件位置说明](#配置文件位置说明)
+- [Regret 楠岃瘉锛堜笌楠屾敹鍙ｅ緞瀵归綈锛塢(#regret-楠岃瘉涓庨獙鏀跺彛寰勫榻?
+- [閰嶇疆鏂囦欢浣嶇疆璇存槑](#閰嶇疆鏂囦欢浣嶇疆璇存槑)
 <!-- DOCS:END TOC -->
 
 <!-- DOCS:START GettingStarted -->
@@ -35,7 +35,7 @@ pip install -r semntn/requirements.txt
 <!-- DOCS:START VScan -->
 ## V-scan Demo (UCB inner)
 
-运行依赖轻的内层 UCB 模式，复现 SWWER vs 1/V 以及 Q/J vs V：
+杩愯渚濊禆杞荤殑鍐呭眰 UCB 妯″紡锛屽鐜?SWWER vs 1/V 浠ュ強 Q/J vs V锛?
 
 ```bash
 python run_vscan.py --inner_mode ucb --config configs/vscan.yaml
@@ -47,60 +47,60 @@ python run_vscan.py --inner_mode ucb --config configs/vscan.yaml
 * `outputs/figs/Fig2_QJ_vs_V.png`
 * `outputs/dumps/vscan_stats.csv`
 
-> 调参入口：`configs/vscan.yaml` 中的 `V`, `Q_scale`, `J_scale`。
+> 璋冨弬鍏ュ彛锛歚configs/vscan.yaml` 涓殑 `V`, `Q_scale`, `J_scale`銆?
 <!-- DOCS:END VScan -->
 
 <!-- DOCS:START SemEval -->
 ## Semantic Evaluation Pipeline
 
-端到端语义评估（WER/SWWER CDF、稳定性曲线与数据导出）：
+绔埌绔涔夎瘎浼帮紙WER/SWWER CDF銆佺ǔ瀹氭€ф洸绾夸笌鏁版嵁瀵煎嚭锛夛細
 
 ```bash
 python semntn/src/run_sem_eval.py --config semntn/configs/sem_eval.yaml
 ```
 
-输出位于 `semntn/outputs/{figs,dumps}/...`。
+杈撳嚭浣嶄簬 `semntn/outputs/{figs,dumps}/...`銆?
 <!-- DOCS:END SemEval -->
 
 <!-- DOCS:START Regret -->
-## Regret 验证（与验收口径对齐）
+## Regret 楠岃瘉锛堜笌楠屾敹鍙ｅ緞瀵归綈锛?
 
-最小 K 臂 bandit 验证，生成**累计遗憾曲线**并自动判断是否与理论 \(O(\log T)\) 阶数匹配：
+鏈€灏?K 鑷?bandit 楠岃瘉锛岀敓鎴?*绱閬楁喚鏇茬嚎**骞惰嚜鍔ㄥ垽鏂槸鍚︿笌鐞嗚 \(O(\log T)\) 闃舵暟鍖归厤锛?
 
 ```bash
 python semntn/src/run_regret.py --config configs/regret.yaml
 ```
 
-**Outputs**（默认示例：`semntn/outputs/regret/exp001/`）
+**Outputs**锛堥粯璁ょず渚嬶細`semntn/outputs/regret/exp001/`锛?
 
 * `regret_curve.csv`
 * `Regret_vs_T.png`
 * `Regret_vs_logT.png`
 * `Regret_over_logT.png`
 
-**CLI 报告**（示例）：
+**CLI 鎶ュ憡**锛堢ず渚嬶級锛?
 
 ```json
 {"slope": 1.97, "C*": 8.42, "pass": true}
 ```
 
-* `slope`：对 ((\log T, R(T))) 的线性回归斜率（反映对数级增长）。
-* `C*`：(\max_{t\le T}\frac{R(t)}{\sum_k (\ln t)/\Delta_k}) 的估计，用作“边界常数”指标。
-  当 `pass=true` 时，表示**累计遗憾增长阶数与理论吻合**，满足“边界跟紧”的验收要求。
+* `slope`锛氬 ((\log T, R(T))) 鐨勭嚎鎬у洖褰掓枩鐜囷紙鍙嶆槧瀵规暟绾у闀匡級銆?
+* `C*`锛?\max_{t\le T}\frac{R(t)}{\sum_k (\ln t)/\Delta_k}) 鐨勪及璁★紝鐢ㄤ綔鈥滆竟鐣屽父鏁扳€濇寚鏍囥€?
+  褰?`pass=true` 鏃讹紝琛ㄧず**绱閬楁喚澧為暱闃舵暟涓庣悊璁哄惢鍚?*锛屾弧瓒斥€滆竟鐣岃窡绱р€濈殑楠屾敹瑕佹眰銆?
 
-> 相关参数（算法族/阈值/作图）可在 `configs/regret.yaml` 中调节。
+> 鐩稿叧鍙傛暟锛堢畻娉曟棌/闃堝€?浣滃浘锛夊彲鍦?`configs/regret.yaml` 涓皟鑺傘€?
 <!-- DOCS:END Regret -->
 
 <!-- DOCS:START ConfigMap -->
-## 配置文件位置说明
+## 閰嶇疆鏂囦欢浣嶇疆璇存槑
 
-| 使用场景 | 配置路径 | 入口命令 | 主要输出 |
+| 浣跨敤鍦烘櫙 | 閰嶇疆璺緞 | 鍏ュ彛鍛戒护 | 涓昏杈撳嚭 |
 |---|---|---|---|
-| V-scan（UCB inner） | `configs/vscan.yaml` | `python run_vscan.py --inner_mode ucb --config configs/vscan.yaml` | `outputs/figs/*`, `outputs/dumps/vscan_stats.csv` |
-| 语义评估 | `semntn/configs/sem_eval.yaml` | `python semntn/src/run_sem_eval.py --config semntn/configs/sem_eval.yaml` | `semntn/outputs/{figs,dumps}/...` |
-| Regret 验证 | `configs/regret.yaml` | `python semntn/src/run_regret.py --config configs/regret.yaml` | `semntn/outputs/regret/...` |
+| V-scan锛圲CB inner锛?| `configs/vscan.yaml` | `python run_vscan.py --inner_mode ucb --config configs/vscan.yaml` | `outputs/figs/*`, `outputs/dumps/vscan_stats.csv` |
+| 璇箟璇勪及 | `semntn/configs/sem_eval.yaml` | `python semntn/src/run_sem_eval.py --config semntn/configs/sem_eval.yaml` | `semntn/outputs/{figs,dumps}/...` |
+| Regret 楠岃瘉 | `configs/regret.yaml` | `python semntn/src/run_regret.py --config configs/regret.yaml` | `semntn/outputs/regret/...` |
 
-> 约定：快速实验优先放在仓库根的 `configs/`；端到端语义评估的配置放在 `semntn/configs/`。
+> 绾﹀畾锛氬揩閫熷疄楠屼紭鍏堟斁鍦ㄤ粨搴撴牴鐨?`configs/`锛涚鍒扮璇箟璇勪及鐨勯厤缃斁鍦?`semntn/configs/`銆?
 <!-- DOCS:END ConfigMap -->
 
 ## Research Scope
@@ -115,13 +115,13 @@ python semntn/src/run_regret.py --config configs/regret.yaml
 ```
 
 6G/
-├── semntn/              # Main project code
-│   ├── configs/         # YAML configs for experiments
-│   ├── src/             # Core source code
-│   ├── data/            # Shared channel traces
-│   ├── outputs/         # (ignored) experiment outputs
-│   └── requirements.txt # Python dependencies
-└── .gitignore
+鈹溾攢鈹€ semntn/              # Main project code
+鈹?  鈹溾攢鈹€ configs/         # YAML configs for experiments
+鈹?  鈹溾攢鈹€ src/             # Core source code
+鈹?  鈹溾攢鈹€ data/            # Shared channel traces
+鈹?  鈹溾攢鈹€ outputs/         # (ignored) experiment outputs
+鈹?  鈹斺攢鈹€ requirements.txt # Python dependencies
+鈹斺攢鈹€ .gitignore
 
 ````
 
@@ -145,3 +145,36 @@ python semntn/src/run_regret.py --config configs/regret.yaml
 - Refine PER/SINR mapping with more realistic channel models.
 - Integrate true speech codec traces for stronger evaluation.
 - Prepare reproducibility package (configs + scripts + logs).
+
+<!-- TWC6G: TASK1_GUIDE START -->
+## Task-1 (PD9) 鈥?How We Achieved and Verified PASS
+
+### 1) Problem & Acceptance (PD9 gates)
+- **Preflight**: feasible_intersection_rate 鈮?0.30.
+- **Unit/Identity**: coverage of (B_eff_Hz 鈮?B_min_kHz脳1000) 鈮?0.99; print first violating sample on failure.
+- **V-scan Consistency**: summary.csv has [agg_version, warmup_skip] and rows 鈮?3.
+- **Guard Enforcement**: fallback_used.sum == 0 AND (~action_in_guard_set).sum == 0; print first leakage sample on failure.
+
+### 2) Final PASS Baseline (from configs & preflight)
+- arrivals_bps: **400.0**
+- semantic_budget: **0.70**
+- pd.delta_queue: **0.00**
+- P_max_dBm: **47.0**
+- B_min_kHz: **6.25**
+- B_grid_k: **16**
+
+### 3) Implementation Highlights
+- **Guard projection**: escalate B along B_grid when window empty or queue guard infeasible, then project P; recompute guards using (P*,B*).
+- **Unit/Identity**: compute `B_eff_Hz` strictly from emitted (P*,B*); enforce numeric types; NaN is immediate violation with first-sample print.
+- **V-scan**: write `agg_version` and `warmup_skip`; keep row gate (鈮?3) consistent with analyzer.
+
+### 4) Reproduce (one-shot RUNBOOK)
+```bash
+rm -rf outputs/vscan || true
+python -m semntn.src.pd9_preflight --config configs/task1_release_pd2.yaml
+python -m semntn.src.run_task1 --config configs/task1_wirecheck.yaml --mode wirecheck
+python -m semntn.src.run_task1 --config configs/task1_release_pd2.yaml --mode release
+python -m semntn.src.run_vscan --base-config configs/task1_release_pd2.yaml --vscan-config configs/vscan.yaml
+python -m semntn.src.analyze_task1 --outdir outputs
+```
+<!-- TWC6G: TASK1_GUIDE END -->

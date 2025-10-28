@@ -1,0 +1,24 @@
+mode: continuous
+outdir: outputs
+trace: semntn/data/channel_trace.csv
+T: 200
+slot_sec: 0.02
+arrivals_bps: 600.0
+energy_budget_per_slot_j: 0.5
+semantic_budget: 0.38
+latency_budget_q_bps: 300.0
+V: 6.0
+lam_init_multiplier: 1.5
+scales:
+  queue_scale: 15000.0
+  energy_scale: 600.0
+  semantic_scale: 4.0
+q_bps: 1200.0
+B_grid:
+- 1
+- 2
+- 3
+P_min: 0.2
+P_max: 1.6
+P_grid: 31
+eta_dual: 0.005

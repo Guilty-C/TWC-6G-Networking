@@ -1,0 +1,42 @@
+mode: continuous  # or 'bandit'
+outdir: outputs
+trace: semntn/data/channel_trace.csv
+
+# episode
+T: 2000
+slot_sec: 0.02
+
+# traffic & budgets
+A_bps: 600.0      # arrivals per second
+E_per_slot: 0.5   # energy budget per slot (proxy)
+I_target: 0.20    # max sWER target per slot
+
+# DPP tuning
+V: 120.0
+Q_scale: 20000.0
+J_scale: 500.0
+S_scale: 1.0
+scales:
+  queue_scale: 20000.0
+  energy_scale: 500.0
+  semantic_scale: 1.0
+
+# continuous search
+q_bps: 1200.0
+B_grid: [1, 2, 3]
+P_min: 0.2
+P_max: 1.6
+P_grid: 31
+
+# bandit mode settings
+arms:
+  - { q_bps: 600,  P: 0.4, B: 1 }
+  - { q_bps: 1200, P: 0.8, B: 2 }
+  - { q_bps: 2400, P: 1.2, B: 3 }
+bandit:
+  mode: ucbv
+  alpha: 1.0
+  window: 200
+  lcb_min: 0.10   # RA-UCB reject arms whose LCB < threshold
+  eps_rand: 0.05
+  linucb_dim: 12
