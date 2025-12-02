@@ -11,3 +11,15 @@ __pycache__/
 # 运行产物
 logs/
 outputs/
+
+
+# Large data / archives (do NOT track in git)
+irrelevant/ucb.zip
+task3.zip
+task3/data/dumps/task3_combined_data.csv
+ucb/ucb/results_ucb_compare_v2.csv
+
+# 如果有 data/ 或 outputs/ 之类的目录，也可以在这里整体忽略
+# 比如：
+# outputs/
+# task3/data/dumps/
