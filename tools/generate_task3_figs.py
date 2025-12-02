@@ -17,6 +17,24 @@ FIG_DPI = 300
 MIN_LATENCY_SAMPLES = 20
 
 
+def _write_debug(df: pd.DataFrame, filename: str, note: str | None = None) -> None:
+    """Persist debug data for a figure.
+
+    Always writes a CSV so downstream inspection can see what data were (not)
+    used. When ``df`` is empty and a note is provided, a one-row placeholder is
+    written instead of omitting the debug file entirely.
+    """
+
+    ensure_outdir()
+    path = os.path.join(OUT_DIR, filename)
+    if df is None:
+        df = pd.DataFrame()
+    if df.empty and note:
+        df = pd.DataFrame({"note": [note]})
+    df.to_csv(path, index=False)
+    print(f"[DEBUG] wrote {path} (rows={len(df)})")
+
+
 def ensure_outdir() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -241,24 +259,90 @@ def select_best_V_scenario(df_alg: pd.DataFrame) -> pd.DataFrame:
     return scene_df.drop(columns=["vsweep_flag"])
 
 
+def select_common_V_scenario(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
+    """Pick a single (window, grid_density) shared across algorithms.
+
+    This enforces a fair cross-algorithm comparison for V sweeps. The chosen
+    scenario maximizes the *minimum* V coverage across algorithms; ties are
+    broken by the total distinct V count then by alphabetical order of the
+    scene key. If no shared scene exists, the function falls back to the input
+    dataframe and reports the issue via the metadata dictionary.
+    """
+
+    if df.empty:
+        return df, {"status": "empty"}
+    required = ["algorithm", "V", "window", "grid_density"]
+    if any(col not in df.columns for col in required):
+        return df, {"status": "missing_scene_keys"}
+
+    work = df.copy()
+    work["V"] = pd.to_numeric(work["V"], errors="coerce")
+    work = work.dropna(subset=["algorithm", "V", "window", "grid_density"])
+    if work.empty:
+        return df, {"status": "no_scene_rows"}
+
+    algs = sorted({a for a in work["algorithm"].unique() if str(a).lower() != "unknown"})
+    scene_map: dict[str, dict[Tuple[int, int], set]] = {}
+    for alg in algs:
+        sub = work[work["algorithm"] == alg]
+        scenes = {}
+        for (w, g), grp in sub.groupby(["window", "grid_density"], dropna=False):
+            vset = set(grp["V"].dropna().unique())
+            if vset:
+                scenes[(int(w), int(g))] = vset
+        scene_map[alg] = scenes
+
+    if not scene_map:
+        return df, {"status": "no_scene_map"}
+
+    shared_scenes = None
+    for scenes in scene_map.values():
+        if shared_scenes is None:
+            shared_scenes = set(scenes.keys())
+        else:
+            shared_scenes &= set(scenes.keys())
+    if not shared_scenes:
+        return df, {"status": "no_shared_scene", "scene_map": {k: list(v.keys()) for k, v in scene_map.items()}}
+
+    def _score_scene(scene: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int]]:
+        min_cov = min(len(scene_map[alg].get(scene, set())) for alg in algs)
+        total_cov = sum(len(scene_map[alg].get(scene, set())) for alg in algs)
+        return (min_cov, total_cov, scene)
+
+    picked_scene = max(shared_scenes, key=_score_scene)
+    filtered = work[(work["window"] == picked_scene[0]) & (work["grid_density"] == picked_scene[1])]
+    coverage = {
+        alg: sorted(scene_map[alg].get(picked_scene, set()))
+        for alg in algs
+    }
+    meta = {"status": "shared", "scene": {"window": picked_scene[0], "grid_density": picked_scene[1]}, "coverage": coverage}
+    return filtered, meta
+
+
 def _steady_state_stats(
-    df: pd.DataFrame, value_col: str, extra_fields: Iterable[str] | None = None
-) -> pd.DataFrame:
+    df: pd.DataFrame,
+    value_col: str,
+    extra_fields: Iterable[str] | None = None,
+    burn_ratio: float = 0.2,
+    window_frac: float = 0.05,
+    min_window: int = 10,
+    return_run_details: bool = False,
+):
     if df.empty or value_col not in df.columns:
-        return pd.DataFrame()
+        return (pd.DataFrame(), pd.DataFrame()) if return_run_details else pd.DataFrame()
     extra_fields = list(extra_fields or [])
     cols_needed = ["algorithm", "V", "t", value_col]
     for col in cols_needed:
         if col not in df.columns:
             print(f"[WARN] Missing column {col} for steady-state stats on {value_col}")
-            return pd.DataFrame()
+            return (pd.DataFrame(), pd.DataFrame()) if return_run_details else pd.DataFrame()
 
     work = df.copy()
     work["t"] = pd.to_numeric(work["t"], errors="coerce")
     work[value_col] = pd.to_numeric(work[value_col], errors="coerce")
     work = work.dropna(subset=["algorithm", "V", "t", value_col])
     if work.empty:
-        return pd.DataFrame()
+        return (pd.DataFrame(), pd.DataFrame()) if return_run_details else pd.DataFrame()
     if "seed" not in work.columns:
         work["seed"] = 0
     work["seed"] = work["seed"].fillna(0)
@@ -268,7 +352,7 @@ def _steady_state_stats(
     run_cols = ["algorithm", "V", "file", "seed"]
     tmax = work.groupby(run_cols)["t"].max()
     if tmax.empty:
-        return pd.DataFrame()
+        return (pd.DataFrame(), pd.DataFrame()) if return_run_details else pd.DataFrame()
     tcommon_map = tmax.groupby(level=[0, 1]).min().to_dict()
 
     records = []
@@ -276,7 +360,7 @@ def _steady_state_stats(
         t_common = tcommon_map.get((alg, v_val))
         if t_common is None or not math.isfinite(t_common) or t_common <= 0:
             continue
-        burn_start = 0.5 * t_common
+        burn_start = burn_ratio * t_common
         sub = work[
             (work["algorithm"] == alg)
             & (work["V"] == v_val)
@@ -288,8 +372,8 @@ def _steady_state_stats(
         vals = sub[value_col].dropna()
         if vals.empty:
             continue
-        window = max(25, int(0.10 * len(vals)))
-        roll = vals.rolling(window=window, min_periods=10).mean().dropna()
+        window = max(min_window, int(window_frac * len(vals)))
+        roll = vals.rolling(window=window, min_periods=min_window).mean().dropna()
         if roll.empty:
             continue
         rec = {
@@ -308,7 +392,7 @@ def _steady_state_stats(
         records.append(rec)
 
     if not records:
-        return pd.DataFrame()
+        return (pd.DataFrame(), pd.DataFrame()) if return_run_details else pd.DataFrame()
     run_df = pd.DataFrame(records)
     agg = run_df.groupby(["algorithm", "V"]).agg(
         mean=("mean_seed", "mean"),
@@ -323,6 +407,8 @@ def _steady_state_stats(
             agg[ef] = run_df.groupby(["algorithm", "V"])[ef].agg(lambda x: x.dropna().iloc[0])
     agg = agg.reset_index()
     agg["ci95"] = 1.96 * agg["std"] / np.sqrt(agg["count"].clip(lower=1))
+    if return_run_details:
+        return agg, run_df
     return agg
 
 
@@ -330,11 +416,13 @@ def fig_regret_vs_time(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty or "qoe" not in df.columns or "t" not in df.columns or "algorithm" not in df.columns:
         print("[WARN] fig01: insufficient data for regret_vs_time")
+        _write_debug(pd.DataFrame(), "debug_fig01_regret_vs_time.csv", note="missing columns or empty")
         return
     work = df.copy()
     work = work.dropna(subset=["qoe", "t", "algorithm"])
     if work.empty:
         print("[WARN] fig01: no valid rows after dropna")
+        _write_debug(pd.DataFrame(), "debug_fig01_regret_vs_time.csv", note="no valid rows after dropna")
         return
     work["t_int"] = pd.to_numeric(work["t"], errors="coerce").astype(int)
     pivot = (
@@ -346,19 +434,23 @@ def fig_regret_vs_time(df: pd.DataFrame) -> None:
     )
     if pivot.empty or pivot.shape[1] < 1:
         print("[WARN] fig01: pivot empty")
+        _write_debug(pivot.reset_index(), "debug_fig01_regret_vs_time.csv", note="pivot empty")
         return
     valid_cols = [c for c in pivot.columns if pivot[c].count() > 10]
     pivot = pivot[valid_cols]
     common_t = pivot.dropna().index
     if len(common_t) == 0:
         print("[WARN] fig01: no common time points to align")
+        _write_debug(pivot.reset_index(), "debug_fig01_regret_vs_time.csv", note="no common time points")
         return
     pivot = pivot.loc[common_t]
     best = pivot.max(axis=1)
     plt.figure(figsize=(8, 4))
+    debug_rows = []
     for alg in pivot.columns:
         regret = (best - pivot[alg]).clip(lower=0).cumsum()
         plt.plot(pivot.index, regret, label=alg, linewidth=2)
+        debug_rows.append(pd.DataFrame({"t": pivot.index, "algorithm": alg, "regret": regret.values}))
     plt.xlabel("t")
     plt.ylabel("Cumulative Regret")
     plt.legend()
@@ -366,6 +458,8 @@ def fig_regret_vs_time(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig01_regret_vs_time.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    debug_df = pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame()
+    _write_debug(debug_df, "debug_fig01_regret_vs_time.csv", note="no regret curves")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -373,23 +467,33 @@ def fig_qoe_vs_V(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty:
         print("[WARN] fig02: empty dataframe")
+        _write_debug(pd.DataFrame(), "debug_fig02_qoe_vs_V.csv", note="empty dataframe")
         return
     if "qoe" not in df.columns or "V" not in df.columns:
         print("[WARN] fig02: required columns missing (qoe/V)")
+        _write_debug(pd.DataFrame(), "debug_fig02_qoe_vs_V.csv", note="missing required columns")
         return
     df = df.dropna(subset=["qoe", "V"])
     df = df[df["algorithm"].notna()]
     df = df[df["algorithm"].str.lower() != "unknown"]
     if df.empty:
         print("[WARN] fig02: no data after filtering algorithms/qoe/V")
+        _write_debug(pd.DataFrame(), "debug_fig02_qoe_vs_V.csv", note="no data after filtering")
         return
 
     plt.figure(figsize=(7, 5))
     debug_rows = []
     plotted = False
-    for alg, sub_alg in df.groupby("algorithm"):
-        scene_df = select_best_V_scenario(sub_alg)
-        stats = _steady_state_stats(scene_df, "qoe", extra_fields=["window", "grid_density"])
+    filtered, scene_meta = select_common_V_scenario(df)
+    if scene_meta.get("status") != "shared":
+        print(f"[WARN] fig02: unable to find shared scenario, status={scene_meta.get('status')}")
+    for alg, sub_alg in filtered.groupby("algorithm"):
+        stats, run_details = _steady_state_stats(
+            sub_alg,
+            "qoe",
+            extra_fields=["window", "grid_density"],
+            return_run_details=True,
+        )
         if stats.empty:
             print(f"[WARN] fig02: skip alg={alg} due to empty stats")
             continue
@@ -403,11 +507,22 @@ def fig_qoe_vs_V(df: pd.DataFrame) -> None:
         )
         stats["metric"] = "qoe"
         stats["algorithm"] = alg
+        stats["scene_status"] = scene_meta.get("status")
+        stats["scene_window"] = scene_meta.get("scene", {}).get("window")
+        stats["scene_grid_density"] = scene_meta.get("scene", {}).get("grid_density")
         debug_rows.append(stats)
+        if not run_details.empty:
+            run_details = run_details.assign(
+                scene_status=scene_meta.get("status"),
+                scene_window=scene_meta.get("scene", {}).get("window"),
+                scene_grid_density=scene_meta.get("scene", {}).get("grid_density"),
+            )
+            debug_rows.append(run_details.assign(record_type="run_details"))
         plotted = True
 
     if not plotted:
         print("[WARN] fig02: nothing to plot")
+        _write_debug(pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame(), "debug_fig02_qoe_vs_V.csv", note="no plotted data")
         return
     plt.xlabel("V")
     plt.ylabel("QoE (Ubar)")
@@ -416,13 +531,9 @@ def fig_qoe_vs_V(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig02_qoe_vs_V.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
-    if debug_rows:
-        debug_df = pd.concat(debug_rows, ignore_index=True)
-        debug_path = os.path.join(OUT_DIR, "debug_fig02_qoe_vs_V.csv")
-        debug_df.to_csv(debug_path, index=False)
-        print(f"[INFO] Saved {fig_path} and debug CSV {debug_path}")
-    else:
-        print(f"[INFO] Saved {fig_path}")
+    debug_df = pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame()
+    _write_debug(debug_df, "debug_fig02_qoe_vs_V.csv", note="no plotted data")
+    print(f"[INFO] Saved {fig_path}")
 
 
 def _extract_queue_energy(df: pd.DataFrame) -> Tuple[pd.Series | None, pd.Series | None]:
@@ -456,9 +567,11 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty:
         print("[WARN] fig03: empty dataframe")
+        _write_debug(pd.DataFrame(), "debug_fig03_queue_energy_vs_V.csv", note="empty dataframe")
         return
     if "V" not in df.columns or "algorithm" not in df.columns:
         print("[WARN] fig03: required columns missing (V/algorithm)")
+        _write_debug(pd.DataFrame(), "debug_fig03_queue_energy_vs_V.csv", note="missing required columns")
         return
 
     plt.figure(figsize=(8, 5))
@@ -467,7 +580,10 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
     colors = plt.cm.tab10.colors
     debug_rows = []
     plotted = False
-    for idx, (alg, sub_alg) in enumerate(df.groupby("algorithm")):
+    filtered, scene_meta = select_common_V_scenario(df)
+    if scene_meta.get("status") != "shared":
+        print(f"[WARN] fig03: unable to find shared scenario, status={scene_meta.get('status')}")
+    for idx, (alg, sub_alg) in enumerate(filtered.groupby("algorithm")):
         if str(alg).lower() == "unknown":
             continue
         queue_series, energy_series = _extract_queue_energy(sub_alg)
@@ -478,9 +594,18 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
         if "queue_metric" not in sub_alg.columns or "energy_metric" not in sub_alg.columns:
             print(f"[WARN] fig03: skip alg={alg} due to missing queue/energy columns")
             continue
-        scene_df = select_best_V_scenario(sub_alg)
-        stats_q = _steady_state_stats(scene_df, "queue_metric", extra_fields=["window", "grid_density"])
-        stats_e = _steady_state_stats(scene_df, "energy_metric", extra_fields=["window", "grid_density"])
+        stats_q, run_q = _steady_state_stats(
+            sub_alg,
+            "queue_metric",
+            extra_fields=["window", "grid_density"],
+            return_run_details=True,
+        )
+        stats_e, run_e = _steady_state_stats(
+            sub_alg,
+            "energy_metric",
+            extra_fields=["window", "grid_density"],
+            return_run_details=True,
+        )
         if stats_q.empty and stats_e.empty:
             print(f"[WARN] fig03: skip alg={alg} due to empty stats")
             continue
@@ -515,7 +640,20 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
             )
         if not stats_q.empty or not stats_e.empty:
             merged = pd.merge(stats_q, stats_e, on=["algorithm", "V"], how="outer", suffixes=("_queue", "_energy"))
+            merged["scene_status"] = scene_meta.get("status")
+            merged["scene_window"] = scene_meta.get("scene", {}).get("window")
+            merged["scene_grid_density"] = scene_meta.get("scene", {}).get("grid_density")
             debug_rows.append(merged)
+            for run_df, tag in [(run_q, "queue_run"), (run_e, "energy_run")]:
+                if not run_df.empty:
+                    debug_rows.append(
+                        run_df.assign(
+                            record_type=tag,
+                            scene_status=scene_meta.get("status"),
+                            scene_window=scene_meta.get("scene", {}).get("window"),
+                            scene_grid_density=scene_meta.get("scene", {}).get("grid_density"),
+                        )
+                    )
             plotted = True
 
     if not plotted:
@@ -531,13 +669,9 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig03_queue_energy_vs_V.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
-    if debug_rows:
-        debug_df = pd.concat(debug_rows, ignore_index=True)
-        debug_path = os.path.join(OUT_DIR, "debug_fig03_queue_energy_vs_V.csv")
-        debug_df.to_csv(debug_path, index=False)
-        print(f"[INFO] Saved {fig_path} and debug CSV {debug_path}")
-    else:
-        print(f"[INFO] Saved {fig_path}")
+    debug_df = pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame()
+    _write_debug(debug_df, "debug_fig03_queue_energy_vs_V.csv", note="no plotted data")
+    print(f"[INFO] Saved {fig_path}")
 
 
 def fig_param_sensitivity(summary_csv: str, df_all: pd.DataFrame | None = None) -> None:
@@ -551,6 +685,7 @@ def fig_param_sensitivity(summary_csv: str, df_all: pd.DataFrame | None = None) 
             return
     if df_source is None or df_source.empty:
         print("[WARN] fig04: no data available for param sensitivity")
+        _write_debug(pd.DataFrame(), "debug_fig04_param_sensitivity.csv", note="no data available")
         return
     df_work = df_source.copy()
     if "file" not in df_work.columns and "file" in df_source.columns:
@@ -590,11 +725,13 @@ def fig_param_sensitivity(summary_csv: str, df_all: pd.DataFrame | None = None) 
                 deltas[p] = means.max() - means.min()
     if not deltas:
         print("[WARN] fig04: no parameter with multiple values to analyze")
+        _write_debug(pd.DataFrame(), "debug_fig04_param_sensitivity.csv", note="no parameter with multiple values")
         return
 
     plt.figure(figsize=(6, 4))
     names = list(deltas.keys())
     vals = [deltas[k] for k in names]
+    _write_debug(pd.DataFrame({"parameter": names, "delta": vals}), "debug_fig04_param_sensitivity.csv")
     plt.bar(names, vals, color="#4C72B0")
     plt.ylabel("Delta Ubar")
     plt.xlabel("parameter")
@@ -608,9 +745,11 @@ def fig_nonstationary_robustness(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty:
         print("[WARN] fig05: empty dataframe")
+        _write_debug(pd.DataFrame(), "debug_fig05_nonstationary_robustness.csv", note="empty dataframe")
         return
     if "algorithm" not in df.columns:
         print("[WARN] fig05: missing algorithm column")
+        _write_debug(pd.DataFrame(), "debug_fig05_nonstationary_robustness.csv", note="missing algorithm column")
         return
 
     records = []
@@ -650,6 +789,7 @@ def fig_nonstationary_robustness(df: pd.DataFrame) -> None:
 
     if not records:
         print("[WARN] fig05: no records for nonstationary robustness")
+        _write_debug(pd.DataFrame(), "debug_fig05_nonstationary_robustness.csv", note="no records")
         return
     df_rec = pd.DataFrame(records)
     plt.figure(figsize=(7, 4))
@@ -672,6 +812,7 @@ def fig_nonstationary_robustness(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig05_nonstationary_robustness.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    _write_debug(df_rec, "debug_fig05_nonstationary_robustness.csv")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -679,33 +820,40 @@ def fig_latency_cdf(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty:
         print("[WARN] fig06: empty dataframe")
+        _write_debug(pd.DataFrame(), "debug_fig06_latency_cdf.csv", note="empty dataframe")
         return
     latency_cols = [c for c in df.columns if ("latency" in c.lower() or "decision" in c.lower()) and "slot" not in c.lower()]
     if not latency_cols:
         print("[WARN] fig06: no latency columns found")
+        _write_debug(pd.DataFrame(), "debug_fig06_latency_cdf.csv", note="no latency columns")
         return
     col = latency_cols[0]
     plt.figure(figsize=(7, 4))
     plotted = False
+    debug_rows: List[pd.DataFrame] = []
     for alg, sub in df.groupby("algorithm"):
         vals = pd.to_numeric(sub[col], errors="coerce").dropna()
         if len(vals) < MIN_LATENCY_SAMPLES:
             print(f"[WARN] fig06: skip alg={alg} due to few latency samples")
             continue
         vals = np.sort(vals)
-        cdf = np.linspace(0, 1, len(vals), endpoint=False)
+        cdf = np.linspace(0, 1, len(vals))
         plt.plot(vals, cdf, linewidth=2, label=alg)
+        debug_rows.append(pd.DataFrame({"algorithm": alg, "latency": vals, "cdf": cdf}))
         plotted = True
     if not plotted:
         print("[WARN] fig06: nothing to plot")
+        _write_debug(pd.DataFrame(), "debug_fig06_latency_cdf.csv", note="no plotted algorithms")
         return
-    plt.xlabel("latency (ms)")
+    plt.xlabel(f"{col}")
     plt.ylabel("CDF")
     plt.legend()
     plt.tight_layout()
     fig_path = os.path.join(OUT_DIR, "fig06_latency_cdf.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    debug_df = pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame()
+    _write_debug(debug_df, "debug_fig06_latency_cdf.csv", note="no plotted algorithms")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -714,20 +862,24 @@ def fig_snr_per_heat() -> None:
     path = os.path.join("outputs", "dumps", "task3_phys_scan.csv")
     if not os.path.exists(path):
         print(f"[WARN] fig07: missing {path}")
+        _write_debug(pd.DataFrame(), "debug_fig07_snr_per_heat.csv", note="missing phys scan file")
         return
     try:
         df = pd.read_csv(path)
     except Exception as exc:  # pragma: no cover - defensive
         print(f"[WARN] fig07: failed to read phys scan: {exc}")
+        _write_debug(pd.DataFrame(), "debug_fig07_snr_per_heat.csv", note="read failure")
         return
     required = {"B", "snr_db", "per"}
     if not required.issubset(set(df.columns)):
         print("[WARN] fig07: required columns missing in phys scan")
+        _write_debug(pd.DataFrame(), "debug_fig07_snr_per_heat.csv", note="missing required columns")
         return
     grouped = df.groupby(["B", "snr_db"])["per"].mean().reset_index()
     pivot = grouped.pivot(index="B", columns="snr_db", values="per")
     if pivot.empty:
         print("[WARN] fig07: no data after grouping")
+        _write_debug(pd.DataFrame(), "debug_fig07_snr_per_heat.csv", note="empty pivot")
         return
     plt.figure(figsize=(8, 5))
     im = plt.imshow(pivot.values, aspect="auto", origin="lower", extent=[
@@ -743,6 +895,7 @@ def fig_snr_per_heat() -> None:
     fig_path = os.path.join(OUT_DIR, "fig07_snr_per_heat.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    _write_debug(grouped, "debug_fig07_snr_per_heat.csv")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -750,6 +903,7 @@ def fig_pb_selection_heat(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty:
         print("[WARN] fig08: empty dataframe")
+        _write_debug(pd.DataFrame(), "debug_fig08_pb_selection_heat.csv", note="empty dataframe")
         return
     P_col = None
     if "P" in df.columns:
@@ -763,10 +917,12 @@ def fig_pb_selection_heat(df: pd.DataFrame) -> None:
         B_col = "bandwidth"
     if P_col is None or B_col is None:
         print("[WARN] fig08: missing P/B columns")
+        _write_debug(pd.DataFrame(), "debug_fig08_pb_selection_heat.csv", note="missing P/B columns")
         return
     work = df[[P_col, B_col]].dropna()
     if work.empty:
         print("[WARN] fig08: no P/B data")
+        _write_debug(pd.DataFrame(), "debug_fig08_pb_selection_heat.csv", note="no P/B data")
         return
     work["P_round"] = pd.to_numeric(work[P_col], errors="coerce").round(1)
     work["B_round"] = pd.to_numeric(work[B_col], errors="coerce").round(1)
@@ -786,6 +942,7 @@ def fig_pb_selection_heat(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig08_pb_selection_heat.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    _write_debug(grouped, "debug_fig08_pb_selection_heat.csv")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -793,9 +950,11 @@ def fig_swer_vs_snr(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty or "sWER" not in df.columns or "snr_db" not in df.columns:
         print("[WARN] fig09: missing data for sWER vs SNR")
+        _write_debug(pd.DataFrame(), "debug_fig09_swer_vs_snr.csv", note="missing columns or empty")
         return
     plt.figure(figsize=(7, 4))
     plotted = False
+    debug_rows = []
     for alg, sub in df.groupby("algorithm"):
         vals = sub.dropna(subset=["sWER", "snr_db"])
         if vals.empty:
@@ -807,9 +966,11 @@ def fig_swer_vs_snr(df: pd.DataFrame) -> None:
         x = [b.mid for b in grouped.index]
         y = grouped.values
         plt.plot(x, y, linewidth=2, marker="o", label=alg)
+        debug_rows.append(pd.DataFrame({"algorithm": alg, "snr_mid": x, "sWER_mean": y}))
         plotted = True
     if not plotted:
         print("[WARN] fig09: nothing plotted")
+        _write_debug(pd.DataFrame(), "debug_fig09_swer_vs_snr.csv", note="nothing plotted")
         return
     plt.xlabel("SNR (dB)")
     plt.ylabel("sWER")
@@ -818,6 +979,8 @@ def fig_swer_vs_snr(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig09_swer_vs_snr.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    debug_df = pd.concat(debug_rows, ignore_index=True) if debug_rows else pd.DataFrame()
+    _write_debug(debug_df, "debug_fig09_swer_vs_snr.csv", note="nothing plotted")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -825,10 +988,12 @@ def fig_qoe_swer_frontier(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty or "qoe" not in df.columns or "sWER" not in df.columns:
         print("[WARN] fig10: missing qoe/sWER data")
+        _write_debug(pd.DataFrame(), "debug_fig10_qoe_swer_frontier.csv", note="missing qoe/sWER")
         return
     stats = df.dropna(subset=["qoe", "sWER"])
     if stats.empty:
         print("[WARN] fig10: no data after dropna")
+        _write_debug(pd.DataFrame(), "debug_fig10_qoe_swer_frontier.csv", note="no data after dropna")
         return
     agg = stats.groupby("algorithm").agg(Ubar=("qoe", "mean"), Dbar=("sWER", "mean")).reset_index()
     agg = agg.sort_values("Dbar")
@@ -843,6 +1008,7 @@ def fig_qoe_swer_frontier(df: pd.DataFrame) -> None:
     fig_path = os.path.join(OUT_DIR, "fig10_qoe_swer_frontier.png")
     plt.savefig(fig_path, dpi=FIG_DPI)
     plt.close()
+    _write_debug(agg, "debug_fig10_qoe_swer_frontier.csv")
     print(f"[INFO] Saved {fig_path}")
 
 
@@ -850,6 +1016,7 @@ def fig_violation_over_time(df: pd.DataFrame) -> None:
     ensure_outdir()
     if df.empty or "t" not in df.columns:
         print("[WARN] fig11: missing data/time column")
+        _write_debug(pd.DataFrame(), "debug_fig11_violation_over_time.csv", note="missing data/time")
         return
     violate_cols = []
     for cand in ["violate_lat", "violate_eng", "violate_sem", "q_violate_flag", "d_violate_flag", "energy_violate_flag", "violation_flag"]:
@@ -857,6 +1024,7 @@ def fig_violation_over_time(df: pd.DataFrame) -> None:
             violate_cols.append(cand)
     if not violate_cols:
         print("[WARN] fig11: no violation columns found")
+        _write_debug(pd.DataFrame(), "debug_fig11_violation_over_time.csv", note="no violation columns")
         return
     plt.figure(figsize=(8, 4))
     plotted = False
@@ -871,9 +1039,11 @@ def fig_violation_over_time(df: pd.DataFrame) -> None:
         window = 200 if len(grouped) > 500 else 100
         smoothed = grouped.rolling(window=window, min_periods=max(10, window // 5)).mean()
         plt.plot(smoothed.index, smoothed.values, linewidth=2, label=col)
+        _write_debug(smoothed.reset_index().rename(columns={"index": "t", col: "smoothed"}), "debug_fig11_violation_over_time.csv")
         plotted = True
     if not plotted:
         print("[WARN] fig11: nothing plotted")
+        _write_debug(pd.DataFrame(), "debug_fig11_violation_over_time.csv", note="nothing plotted")
         return
     plt.xlabel("t")
     plt.ylabel("violation prob")
