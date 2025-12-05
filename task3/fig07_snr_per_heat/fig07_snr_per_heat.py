@@ -10,7 +10,7 @@ from common import ensure_outdir, OUT_DIR, FIG_DPI
 
 def fig_snr_per_heat() -> None:
     ensure_outdir()
-    path = os.path.join("outputs", "dumps", "task3_phys_scan.csv")
+    path = "task3_phys_scan.csv"
     if not os.path.exists(path):
         print(f"[WARN] fig07: missing {path}")
         return

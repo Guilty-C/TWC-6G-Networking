@@ -70,7 +70,12 @@ def fig_queue_energy_vs_V(df: pd.DataFrame) -> None:
                 alpha=0.1,
             )
         if not stats_q.empty or not stats_e.empty:
-            merged = pd.merge(stats_q, stats_e, on=["algorithm", "V"], how="outer", suffixes=("_queue", "_energy"))
+            if stats_q.empty:
+                merged = stats_e.copy()
+            elif stats_e.empty:
+                merged = stats_q.copy()
+            else:
+                merged = pd.merge(stats_q, stats_e, on=["algorithm", "V"], how="outer", suffixes=("_queue", "_energy"))
             debug_rows.append(merged)
             plotted = True
 

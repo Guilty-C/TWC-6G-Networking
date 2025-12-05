@@ -13,9 +13,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Determine Project Root
-# PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-OUT_DIR = "."
+OUT_DIR = os.path.join(PROJECT_ROOT, "outputs", "figures", "task3_v3")
 FIG_DPI = 300
 MIN_LATENCY_SAMPLES = 20
 
@@ -113,8 +113,6 @@ def normalize_columns(df: pd.DataFrame, filename: str) -> pd.DataFrame:
 
     if "Q" not in df.columns and "queue" in df.columns:
         df["Q"] = pd.to_numeric(df["queue"], errors="coerce")
-    if "Q" not in df.columns and "q_bps" in df.columns:
-        df["Q"] = pd.to_numeric(df["q_bps"], errors="coerce")
     if "queue" not in df.columns and "Q" in df.columns:
         df["queue"] = df["Q"]
     if "Q" not in df.columns and "q_semantic" in df.columns:
@@ -142,7 +140,12 @@ def normalize_columns(df: pd.DataFrame, filename: str) -> pd.DataFrame:
     return df
 
 def load_all_dumps() -> pd.DataFrame:
-    patterns = ["*.csv"]
+    patterns = [
+        os.path.join(PROJECT_ROOT, "outputs", "dumps", "*.csv"),
+        os.path.join(PROJECT_ROOT, "outputs", "dumps", "task3_v3", "**", "*.csv"),
+        os.path.join(PROJECT_ROOT, "outputs", "dumps", "task3_v2", "*.csv"),
+        os.path.join(PROJECT_ROOT, "task3", "outputs", "dumps", "**", "*.csv"),
+    ]
     files: List[str] = []
     for pat in patterns:
         files.extend(glob.glob(pat, recursive=True))
