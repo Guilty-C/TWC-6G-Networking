@@ -1,0 +1,13 @@
+KPI,Definition,Unit,Normal_Threshold,HighLoad_Threshold,Sampling,Abnormal_Rule,Basis
+semantic_qoe_mean,Episode mean of MOS surrogate (post warm-up),MOS,>=3.20,>=3.00,per-slot; mean after warm-up=50,mean<MOS_threshold,Semantic-weighted QoE per guide
+swer_compliance_rate,Fraction of slots with sWER_clip<=semantic_budget,%,=100%,>=99.5%,per-slot; rate after warm-up,rate<threshold,Constraint C3 compliance
+energy_compliance_rate,Fraction of slots with E_slot_J<=energy_budget_per_slot_j,%,=100%,>=99.5%,per-slot; rate after warm-up,rate<threshold,Constraint C2 compliance
+queue_compliance_rate,Fraction of slots with S_eff_bps>=arrivals_bps,%,=100%,>=99.0%,per-slot; rate after warm-up,rate<threshold,Constraint C1 compliance
+guard_action_in_set_rate,Fraction of slots action_in_guard_set==1,%,=100%,=100%,per-slot; rate after warm-up,rate<100%,Guard projection/enforcement must hold
+agg_required_cols_presence,Rows with all AGG_REQUIRED_COLS present,%,=100%,=100%,per-row; after warm-up,rate<100%,Aggregator schema compliance
+b_eff_identity_pass_rate,B_eff_Hz>=B_min_kHz*1000 within tolerance,%,=100%,>=99.9%,per-row; tolerance=1e-3,rate<threshold,Unit identity check
+decision_latency_p99,99th percentile controller step latency per slot,ms,<=10,<=15,per-slot timing; p99 over episode,p99>threshold,Operational latency target
+log_nan_rate,NaN fraction over AGG_REQUIRED_COLS,%,=0%,<=0.1%,per-row; after warm-up,rate>threshold,Data quality gate
+fallback_used_rate,Fraction of slots with fallback_used==1,%,=0%,=0%,per-slot; after warm-up,rate>0%,Fallback hard-disabled in T1
+bad_counters_rate,Fraction of slots with any bad_* > 0,%,=0%,<=0.5%,per-slot; after warm-up,rate>threshold,Post-projection violations
+agg_version_match,Aggregator version equals constants.AGG_VERSION,string,agg_pd9_v1,agg_pd9_v1,episode-level,version!=expected,Version gate

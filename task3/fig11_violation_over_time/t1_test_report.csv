@@ -1,0 +1,12 @@
+Suite,TestCase,Status,Duration_s,Notes
+unittest,TestAggRequiredColumns.test_agg_required_columns_present,passed,0.09,aggregator required columns present; guard diagnostics printed once
+unittest,TestGuardProjectionConsistency.test_guard_projection_consistency,passed,0.10,action_in_guard_set=1 and bad_* all 0 in scenario
+unittest,TestRunTask1Connectivity.test_run_task1_importable,passed,0.08,run_task1 import OK
+pytest,test_dpp_bandit_schema::test_bandit_schema_and_guards_emission,passed,0.06,bandit path emits arm_id/lcb_min/guard fields
+pytest,test_inner_bandit_pd9::test_pd9_reward_penalty_and_window,passed,0.05,PD9 penalties applied; window clipped
+pytest,test_pd9_preflight_snapshot::test_preflight_snapshot_helper_writes_yaml,passed,0.05,resolved snapshot YAML written
+pytest,test_pd9_preflight_bandit::test_preflight_bandit_build_and_episode_rate,passed,0.10,preflight episode feasible rate finite; mode=bandit
+pytest,test_vscan_bandit::test_vscan_mean_ci_function,passed,0.04,returns mean and CI bounds
+pytest,test_vscan_bandit::test_vscan_bandit_base_config_load,passed,0.05,config YAML loadable
+Summary,All,passed,0.62,3 unittest passed; 6 pytest passed; 4 warnings in preflight aggregation
+NotExecuted,,none,0.00,none

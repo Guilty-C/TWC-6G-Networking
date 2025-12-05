@@ -1,0 +1,13 @@
+KPI,Measured_Value,Threshold,Scenario,Pass,Notes,Source_File
+semantic_qoe_mean,,>=3.20 (normal) / >=3.00 (high),normal/handfill,,,
+swer_compliance_rate,,=100% (normal) / >=99.5% (high),normal/handfill,,,
+energy_compliance_rate,,=100% (normal) / >=99.5% (high),normal/handfill,,,
+queue_compliance_rate,,=100% (normal) / >=99.0% (high),normal/handfill,,,
+guard_action_in_set_rate,,=100%,any,,,
+agg_required_cols_presence,,=100%,any,,,
+b_eff_identity_pass_rate,,=100% (normal) / >=99.9% (high),normal/handfill,,,
+decision_latency_p99,,<=10ms (normal) / <=15ms (high),normal/handfill,,,
+log_nan_rate,,=0% (normal) / <=0.1% (high),normal/handfill,,,
+fallback_used_rate,,=0%,any,,,
+bad_counters_rate,,=0% (normal) / <=0.5% (high),normal/handfill,,,
+agg_version_match,,agg_pd9_v1,any,,,

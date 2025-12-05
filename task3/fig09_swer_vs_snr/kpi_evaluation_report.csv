@@ -1,0 +1,12 @@
+case,semantic_qoe_mean,swer_compliance_rate,guard_action_rate,episode_run_time_s,per_slot_time_ms_mean,decision_latency_p99_ms,log_nan_rate,energy_compliance_rate,queue_compliance_rate,guard_action_in_set_rate,fallback_used_rate,bad_counters_rate,pass_semantic_qoe_mean,pass_swer_compliance_rate,pass_guard_action_rate,pass_energy_compliance_rate,pass_queue_compliance_rate,pass_guard_action_in_set_rate,pass_fallback_used_rate,pass_bad_counters_rate,pass_decision_latency_p99_ms,pass_log_nan_rate
+episode_v_0.5_basic,4.4969223772564755,1.0,1.0,0.0,0.0,6.639372003410244,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_0.6_basic,4.496302750488112,1.0,1.0,0.0,0.0,6.872252004541224,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_0.7_basic,4.497996703660117,1.0,1.0,0.0,0.0,7.059140002820641,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_0.8_basic,4.497885783306217,1.0,1.0,0.0,0.0,6.778042005025781,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_0.9_basic,4.493708419707631,1.0,1.0,0.0,0.0,7.085861006344202,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.0_basic,4.495793690871186,1.0,1.0,0.0,0.0,23.62450400512898,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.1_basic,4.499086560656172,1.0,1.0,0.0,0.0,6.707219994132173,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.2_basic,4.49749513176216,1.0,1.0,0.0,0.0,6.7084979997889596,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.3_basic,4.495999112424228,1.0,1.0,0.0,0.0,7.28959599859081,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.4_basic,4.497562865098557,1.0,1.0,0.0,0.0,6.808744001173181,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True
+episode_v_1.5_basic,4.493046508899709,1.0,1.0,0.0,0.0,6.8391289953433425,0.0,1.0,1.0,1.0,0.0,0.0,True,True,True,True,True,True,True,True,True,True

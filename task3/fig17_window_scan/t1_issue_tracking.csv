@@ -1,0 +1,6 @@
+Issue,Impact,Detected_By,Resolution,Configurable,Status
+Pytest collection errors due to package path,blocked pytest tests,pytest run,Set PYTHONPATH to project semntn root,Yes,resolved
+Missing configs/task1_release_pd2_bandit.yaml,pytest FileNotFoundError,test_pd9_preflight_bandit,Create temp YAML in %TEMP%\trae_t1_tests\configs,Yes,resolved
+Missing configs/vscan_bandit.yaml,pytest FileNotFoundError,test_vscan_bandit,Create temp YAML in %TEMP%\trae_t1_tests\configs,Yes,resolved
+Unittest initially ignores pytest-style tests,partial coverage,unittest discover,Switch runner to pytest for project tests,Yes,resolved
+Runtime warnings in aggregation (empty slice),informational,pytest preflight,Short slice leads to empty arrays; accept warnings,Yes,accepted

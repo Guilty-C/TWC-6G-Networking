@@ -1,0 +1,13 @@
+KPI,Measured_Value,Normal_Threshold,HighLoad_Threshold,Pass,Source,Notes
+semantic_qoe_mean,N/A,>=3.20,>=3.00,not_run,episode_log,N/A (no episode run in this batch)
+swer_compliance_rate,N/A,=100%,>=99.5%,not_run,episode_log,N/A
+energy_compliance_rate,N/A,=100%,>=99.5%,not_run,episode_log,N/A
+queue_compliance_rate,N/A,=100%,>=99.0%,not_run,episode_log,N/A
+guard_action_in_set_rate,N/A,=100%,=100%,not_run,episode_log,N/A
+agg_required_cols_presence,100%,=100%,=100%,pass,unittest,test_agg_required_columns_present passed
+b_eff_identity_pass_rate,N/A,=100%,>=99.9%,not_run,episode_log,N/A
+decision_latency_p99,N/A,<=10ms,<=15ms,not_run,external_timing,N/A
+log_nan_rate,N/A,=0%,<=0.1%,not_run,episode_log,N/A
+fallback_used_rate,0%,=0%,=0%,pass,controller,continuous path hard-disabled fallback
+bad_counters_rate,0% (scenario),=0%,<=0.5%,pass,unittest,guard projection consistency scenario
+agg_version_match,agg_pd9_v1,agg_pd9_v1,agg_pd9_v1,pass,constants,AGG_VERSION
