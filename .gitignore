@@ -11,7 +11,20 @@ __pycache__/
 # 运行产物
 logs/
 outputs/
-
+**/*.zip
+**/*.7z
+**/*.tar
+**/*.tar.gz
+**/*.pt
+**/*.pth
+**/*.ckpt
+**/*.npy
+**/*.npz
+**/*.pkl
+**/*.log
+**/*.mp4
+**/*.wav
+**/*.pdf
 
 # Large data / archives (do NOT track in git)
 irrelevant/ucb.zip
