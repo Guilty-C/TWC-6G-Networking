@@ -36,3 +36,4 @@ ucb/ucb/results_ucb_compare_v2.csv
 # 比如：
 # outputs/
 # task3/data/dumps/
+task3/fig01_regret_vs_time/task3_combined_data.csv
